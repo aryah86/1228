@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1,228</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700;900&family=Jost:wght@200;300;400;500&display=swap');
+
+  :root {
+    --bg: #1c1916;
+    --paper: #2a2420;
+    --clay: #8b6f5c;
+    --ochre: #b8935a;
+    --dust: #a69080;
+    --bone: #d4c4b0;
+    --cream: #e8ddd0;
+    --faint: #3a322c;
+    --mark-domestic: #c44040;
+    --mark-kidnap: #d45555;
+    --mark-assault: #a63c3c;
+    --mark-rape: #e06060;
+    --mark-dowry: #8b3535;
+    --mark-other: #733030;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: auto; }
+
+  body {
+    background: var(--bg);
+    color: var(--bone);
+    font-family: 'Jost', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === INTRO === */
+  #intro {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: default;
+    overflow: hidden;
+  }
+  #intro.fading .intro-content { opacity: 0; transition: opacity 1s ease; }
+  #intro.gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1.2s ease, visibility 1.2s ease; }
+
+  #mapCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+  #mapCanvas.visible { opacity: 1; }
+
+  .intro-content {
+    position: relative;
+    z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease;
+  }
+
+  .intro-num {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(4.5rem, 16vw, 11rem);
+    font-weight: 900;
+    color: var(--cream);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeUp 2s ease 0.5s forwards;
+  }
+  .intro-sub {
+    font-family: 'Jost', sans-serif;
+    font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+    font-weight: 400;
+    color: var(--bone);
+    text-align: center;
+    line-height: 1.9;
+    max-width: 440px;
+    padding: 0 1.5em;
+    margin-top: 1.2em;
+    opacity: 0;
+    animation: fadeUp 2s ease 2s forwards;
+  }
+  /* Button — fixed to bottom, always clear of dots */
+  .intro-btn-wrap {
+    position: fixed;
+    bottom: 5vh;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 102;
+    opacity: 0;
+    animation: fadeIn 1.5s ease 3.5s forwards;
+  }
+  #intro.fading .intro-btn-wrap { opacity: 0 !important; transition: opacity 0.5s ease; pointer-events: none; }
+  #intro.gone .intro-btn-wrap { opacity: 0 !important; pointer-events: none; }
+
+  .intro-begin {
+    background: none;
+    border: 1px solid rgba(196, 64, 64, 0.4);
+    color: var(--dust);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 1.2em 3em;
+    cursor: pointer;
+    transition: all 0.4s ease;
+  }
+  .intro-begin:hover { border-color: var(--mark-domestic); color: var(--mark-domestic); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  #introCounter {
+    position: fixed;
+    bottom: 2em;
+    right: 2em;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--mark-domestic);
+    opacity: 0;
+    z-index: 101;
+    transition: opacity 0.6s ease;
+  }
+  #introCounter.on { opacity: 0.6; }
+  #introCounter span {
+    font-family: 'Jost', sans-serif;
+    font-size: 0.45rem;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--clay);
+    display: block;
+    margin-top: 0.15em;
+  }
+
+  /* === FLY TRANSITION CANVAS === */
+  #flyCanvas {
+    position: fixed; inset: 0;
+    z-index: 90;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  #flyCanvas.on { opacity: 1; }
+
+  /* === MAIN === */
+  #main {
+    display: none;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+  }
+  #main.on { display: block; }
+  #main.visible { opacity: 1; }
+
+  /* Category section — full viewport */
+  .cat-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 4em 6vw;
+    position: relative;
+    opacity: 0;
+    transform: translateY(25px);
+    transition: opacity 2s cubic-bezier(0.16, 1, 0.3, 1), transform 2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cat-section.on {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .cat-left {
+    flex: 0 0 38%;
+    padding-right: 3em;
+  }
+
+  .cat-number {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(4rem, 10vw, 8rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .cat-number {
+    clip-path: inset(0);
+  }
+  .cat-name {
+    font-family: 'Jost', sans-serif;
+    font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bone);
+    margin-top: 0.8em;
+    opacity: 0;
+    transform: translateY(15px);
+    transition: opacity 1s ease 0.4s, transform 1s ease 0.4s;
+  }
+  .cat-section.on .cat-name { opacity: 1; transform: translateY(0); }
+
+  .cat-suffix {
+    font-family: 'Jost', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    color: var(--dust);
+    margin-top: 0.3em;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 1s ease 0.6s, transform 1s ease 0.6s;
+  }
+  .cat-section.on .cat-suffix { opacity: 1; transform: translateY(0); }
+
+  .cat-desc {
+    font-family: 'Jost', sans-serif;
+    font-size: clamp(1rem, 1.4vw, 1.15rem);
+    font-weight: 400;
+    color: var(--bone);
+    line-height: 1.8;
+    margin-top: 1.5em;
+    max-width: 340px;
+    opacity: 0;
+    transform: translateY(15px);
+    transition: opacity 1.2s ease 0.9s, transform 1.2s ease 0.9s;
+  }
+  .cat-section.on .cat-desc { opacity: 1; transform: translateY(0); }
+
+  .cat-right {
+    flex: 1;
+    position: relative;
+    min-height: 400px;
+    height: 60vh;
+  }
+
+  .cat-dot {
+    position: absolute;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(20px) scale(0.4);
+    transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cat-section.on .cat-dot {
+    opacity: 0.85;
+    transform: translateY(0) scale(1);
+    animation: pulse var(--pulse-dur, 3s) ease-in-out var(--pulse-del, 0s) infinite;
+  }
+  .cat-section.on .cat-dot:hover {
+    transform: scale(1.8) !important;
+    opacity: 1 !important;
+    z-index: 10;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
+    transition-delay: 0s !important;
+    animation: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.65; box-shadow: 0 0 0 0 rgba(196, 64, 64, 0); }
+    50% { opacity: 0.95; box-shadow: 0 0 6px 2px rgba(196, 64, 64, 0.25); }
+  }
+
+  /* Figure formation section */
+  #figure-section {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding-bottom: 4em;
+  }
+  #figureCanvas {
+    width: 100%;
+    height: 72vh;
+    max-height: 680px;
+  }
+  .figure-closing-line {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.6rem);
+    font-weight: 700;
+    color: var(--cream);
+    text-align: center;
+    line-height: 1.4;
+    max-width: 750px;
+    padding: 0 1.5em;
+    margin-top: 1.5em;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 2.5s ease 0.5s, transform 2s ease 0.5s;
+  }
+
+
+
+  /* Quote card (hover) */
+  #quoteCard {
+    position: fixed;
+    z-index: 300;
+    background: rgba(16, 12, 10, 0.97);
+    border-left: 2px solid var(--mark-domestic);
+    color: var(--bone);
+    padding: 1.2em 1.4em;
+    max-width: 300px;
+    border-radius: 2px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #quoteCard.on {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  .quote-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-style: italic;
+    line-height: 1.7;
+    color: var(--cream);
+    margin-bottom: 0.6em;
+  }
+  .quote-context {
+    font-family: 'Jost', sans-serif;
+    font-size: 0.52rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    color: var(--dust);
+    text-transform: uppercase;
+    line-height: 1.5;
+  }
+
+  /* Closing */
+  #closing-section {
+    min-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4em 1.5em;
+    opacity: 0;
+    transform: translateY(25px);
+    transition: opacity 2.5s cubic-bezier(0.16, 1, 0.3, 1), transform 2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #closing-section.on { opacity: 1; transform: translateY(0); }
+
+  #closing-section .close-line {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.5;
+    margin-bottom: 1.5em;
+    max-width: 650px;
+  }
+  #closing-section .close-note {
+    font-family: 'Jost', sans-serif;
+    font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+    font-weight: 400;
+    color: var(--bone);
+    line-height: 1.9;
+    max-width: 560px;
+  }
+  #closing-section .close-src {
+    font-family: 'Jost', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 300;
+    color: var(--clay);
+    margin-top: 3em;
+    letter-spacing: 0.08em;
+  }
+
+  /* Legend */
+  #legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.2em;
+    max-width: 700px;
+    margin: 2em auto 0;
+    opacity: 0;
+    transition: opacity 2s ease 0.5s;
+  }
+  #closing-section.on #legend { opacity: 1; }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    color: var(--bone);
+    text-transform: uppercase;
+  }
+  .leg-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.5;
+  }
+
+  /* Scroll indicator */
+  .scroll-hint {
+    position: fixed;
+    bottom: 2em;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.5rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--clay);
+    opacity: 0;
+    transition: opacity 1s ease;
+    z-index: 50;
+  }
+  .scroll-hint.on { opacity: 0.5; }
+  .scroll-hint::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 24px;
+    background: var(--clay);
+    margin: 0.6em auto 0;
+    animation: scrollPulse 2s ease infinite;
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(0.6); }
+    50% { opacity: 0.8; transform: scaleY(1); }
+  }
+
+  .hover-hint {
+    position: absolute;
+    bottom: -2em;
+    right: 0;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dust);
+    opacity: 0;
+    transition: opacity 1.5s ease 2s;
+  }
+  .cat-section.on .hover-hint { opacity: 0.6; }
+
+  /* Instant reveal — used for seamless canvas→DOM handoff on first category */
+  .cat-section.instant-reveal {
+    transition: none !important;
+  }
+  .cat-section.instant-reveal .cat-dot {
+    transition: none !important;
+    transition-delay: 0s !important;
+    animation: none !important;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .cat-section {
+      flex-direction: column;
+      padding: 3em 1.5em;
+      min-height: auto;
+      padding-top: 6em;
+      padding-bottom: 4em;
+    }
+    .cat-left {
+      flex: none;
+      padding-right: 0;
+      margin-bottom: 2em;
+      text-align: center;
+    }
+    .cat-desc { margin-left: auto; margin-right: auto; }
+    .cat-right {
+      width: 100%;
+      min-height: 300px;
+      height: 50vh;
+    }
+    .cat-dot { transform: translateY(15px) scale(0.4); }
+    .cat-section.on .cat-dot { transform: translateY(0) scale(1); }
+    #quoteCard { max-width: 85vw; }
+    #figure-section { min-height: 85vh; }
+    #figureCanvas { height: 55vh; }
+    .figure-closing-line { font-size: clamp(1.2rem, 5vw, 1.8rem); }
+  }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro">
+  <canvas id="mapCanvas"></canvas>
+  <div class="intro-content">
+    <div class="intro-num">1,228</div>
+    <div class="intro-sub">Crimes registered against women in India.<br>Per day.<br>2023.</div>
+  </div>
+  <div class="intro-btn-wrap">
+    <button class="intro-begin" id="startBtn">See them</button>
+  </div>
+  <div id="introCounter"><span id="iNum">0</span><span>cases everyday</span></div>
+</div>
+
+<!-- FLY TRANSITION CANVAS -->
+<canvas id="flyCanvas"></canvas>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="catContainer"></div>
+
+  <div id="figure-section">
+    <canvas id="figureCanvas"></canvas>
+    <div class="figure-closing-line">These are only the ones that were reported.</div>
+  </div>
+
+  <div id="closing-section">
+    <div class="close-note">One in three married women in India has experienced violence from a partner. Most never file a report. Behind every mark is a name, a face, a life interrupted. The data counts cases. It cannot count silence.</div>
+
+    <div id="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mark-domestic)"></div>Domestic cruelty</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mark-kidnap)"></div>Kidnapping</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mark-assault)"></div>Assault</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mark-rape)"></div>Rape</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mark-dowry)"></div>Dowry death</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mark-other)"></div>Other</div>
+    </div>
+    <div class="close-src">Data: National Crime Records Bureau, Crime in India 2023</div>
+  </div>
+</div>
+
+<div class="scroll-hint" id="scrollHint">Scroll</div>
+
+<!-- QUOTE CARD (hover only) -->
+<div id="quoteCard">
+  <div class="quote-text" id="qText"></div>
+  <div class="quote-context" id="qContext"></div>
+</div>
+
+<script>
+// ─── DATA: real sourced quotes from published reports ───
+// Sources: HRW "Everyone Blames Me" (2017), HRW "No #MeToo for Women Like Us" (2020),
+// Al Jazeera (2023), UN Women (2012), UNODC (2010/2013), The Federal (2025),
+// France24 (2022), CNN (2013/2018/2021), The Guardian (2019), YourStory (2017),
+// Chhanv Foundation, Maitri India, NPR (2018), Vogue India (2017)
+const categories = [
+  {
+    name: 'Domestic cruelty', count: 366, color: '#c44040', cssVar: 'var(--mark-domestic)',
+    desc: 'Cruelty by a husband or his relatives — the single largest category. Most cases involve dowry harassment, physical abuse, or emotional torment within the home.',
+    voices: [
+      { quote: 'I remember at one point my husband told me he was getting tired of the threats and taunts. I told him he could leave me if he wanted, but I was not going to stop fighting.', context: 'Aafreen, DV survivor — Al Jazeera, June 2023' },
+      { quote: 'If people do not help us, then me and my children will die of hunger. I need to protect my children. We cannot live here any more.', context: 'Aafreen, DV survivor — Al Jazeera, June 2023' },
+      { quote: 'I want to tell other women to keep fighting their fight. It is the only way. Women should not let society shame them.', context: 'Aafreen, DV survivor — Al Jazeera, June 2023' },
+      { quote: 'I know I still have a target on my back. My fight is not over.', context: 'Aafreen, DV survivor — Al Jazeera, June 2023' },
+      { quote: 'Someone let my name slip out while talking about me in Muzaffarnagar. So people who had no idea this was my case got to know.', context: 'Aafreen, DV survivor — Al Jazeera, June 2023' },
+      { quote: 'It was the worst sometime in 2017 when we knew we were being followed. Men came and hit him so badly I thought he would die.', context: 'Aafreen, DV survivor — Al Jazeera, June 2023' },
+      { quote: 'People would wonder who we were. They would ask us all sorts of things. It took me years to make this place my home.', context: 'Aafreen, DV survivor — Al Jazeera, June 2023' },
+      { quote: 'The night was the most difficult time. I missed my people. I missed the food, the rice did not taste as it did at home.', context: 'Nazima, forced marriage survivor — Al Jazeera, January 2023' },
+      { quote: 'We have no one here, no parents, no siblings. Even if we are beaten we don\'t have a parent\'s home to go to. The loneliness is most difficult.', context: 'Sabeena, forced marriage survivor — Al Jazeera, January 2023' },
+      { quote: 'When my husband entered my room for the first time, I was shivering.', context: 'Arsheeda Jan, married at 13 — Al Jazeera, January 2023' },
+      { quote: 'When there is a fight with my husband he asks me to leave and pay the money for which he bought me.', context: 'Arsheeda Jan — Al Jazeera, January 2023' },
+      { quote: 'Everyone looks at me differently. I still feel alien.', context: 'Arsheeda Jan — Al Jazeera, January 2023' },
+      { quote: 'The hole in my heart will never heal.', context: 'Arsheeda Jan — Al Jazeera, January 2023' },
+      { quote: 'I was told the man has enough money and has apple orchards. But there is nothing.', context: 'Sabeena, forced marriage — Al Jazeera, January 2023' },
+      { quote: 'I was forced to ignore sexual harassment in my workplace, because I needed to continue working and earning.', context: 'Aisha, domestic worker, Delhi — UN Women, May 2023' },
+      { quote: 'It is a question of honour for women. If I report any such incident, I might lose my job. And it is always the girl who is blamed.', context: 'Kainaat, domestic worker — UN Women, May 2023' },
+      { quote: 'They said I would get justice, but no action has been taken. Several times, I have thought of taking my life along with my children.', context: 'Meitei woman survivor — Scroll.in, 2023' },
+      { quote: 'The POSH Act is a big wholesome lie. It took six months and a thousand emails just to start an inquiry.', context: 'Woman judge, Uttar Pradesh — ThePrint, December 2023' },
+      { quote: 'Kindly permit me to end my life in a dignified way. Let my life be: DISMISSED.', context: 'Woman judge, Uttar Pradesh — ThePrint, December 2023' },
+      { quote: 'I changed my statement in Court because I was scared for my family, daughter and myself. My family is living under constant threat.', context: 'Father of minor complainant — SabrangIndia, 2023' },
+      { quote: 'Now, how will my situation change after talking to you if it has not changed in the last five years? This is where I must be all my life.', context: 'Zarina, trafficking survivor — IPS News, September 2023' },
+      { quote: 'I was 8 when a lady came to our village and told my mother she would fund my education. My parents were poor, so they readily agreed.', context: 'Tara, trafficked at age 8 — VOA, August 2023' },
+      { quote: 'I would wake up at 6 a.m., clean the house, do the laundry and cook food for the entire joint family before leaving for school.', context: 'Tara, child domestic worker — VOA, August 2023' },
+      { quote: 'The fact is that of the seven women who went to the Supreme Court, only one was able to withstand the perils of time.', context: 'Vrinda Grover, lawyer — Al Jazeera, June 2023' },
+      { quote: 'What happened with her was wrong. I will be honest, many of us were satisfied when the verdict came.', context: '55-year-old farmer, Muzaffarnagar — Al Jazeera, June 2023' }
+    ]
+  },
+  {
+    name: 'Kidnapping & abduction', count: 243, color: '#d45555', cssVar: 'var(--mark-kidnap)',
+    desc: 'The second most registered crime. Many cases involve young women taken for forced marriage or trafficking.',
+    voices: [
+      { quote: 'The men looked scary. I did not understand what was happening.', context: 'Nazima, trafficked from West Bengal — Al Jazeera, January 2023' },
+      { quote: 'We were all terrified. We could not do anything as we were frightened that we might be harmed.', context: 'Nazima, trafficking survivor — Al Jazeera, January 2023' },
+      { quote: 'There was an old man who kept a hand on my head and I was introduced to my husband.', context: 'Nazima, forced marriage — Al Jazeera, January 2023' },
+      { quote: 'The night was the most difficult time. I missed my people. The rice did not taste as it did at home.', context: 'Nazima, trafficking survivor — Al Jazeera, January 2023' },
+      { quote: 'The traffickers ruined my life. I cannot think of going back.', context: 'Nazima, trafficking survivor — Al Jazeera, January 2023' },
+      { quote: 'I have three children. I don\'t know what to do, where to go.', context: 'Nazima, trafficking survivor — Al Jazeera, January 2023' },
+      { quote: 'I was told the man has enough money and has apple orchards. But there is nothing.', context: 'Sabeena, forced marriage — Al Jazeera, January 2023' },
+      { quote: 'We have no one here, no parents, no siblings. Even if we are beaten we don\'t have a parent\'s home to go to.', context: 'Sabeena, forced marriage — Al Jazeera, January 2023' },
+      { quote: 'She told me she would provide me with a job in Kashmir. I had no idea where Kashmir is.', context: 'Arsheeda Jan, trafficked at 13 — Al Jazeera, January 2023' },
+      { quote: 'The agent threatened me that if I raise my voice she will kill me. I was very scared.', context: 'Arsheeda Jan — Al Jazeera, January 2023' },
+      { quote: 'When my husband entered my room for the first time, I was shivering.', context: 'Arsheeda Jan, forced marriage — Al Jazeera, January 2023' },
+      { quote: 'When there is a fight with my husband he asks me to leave and pay the money for which he bought me.', context: 'Arsheeda Jan — Al Jazeera, January 2023' },
+      { quote: 'Everyone looks at me differently. I still feel alien.', context: 'Arsheeda Jan — Al Jazeera, January 2023' },
+      { quote: 'The hole in my heart will never heal.', context: 'Arsheeda Jan — Al Jazeera, January 2023' },
+      { quote: 'Now, how will my situation change? This is where I must be all my life.', context: 'Zarina, trafficking survivor — IPS News, September 2023' },
+      { quote: 'I was 8 when a lady came to our village and told my mother she would fund my education. My parents were poor, so they readily agreed.', context: 'Tara, trafficked at age 8 — VOA, August 2023' },
+      { quote: 'I would wake up at 6 a.m., clean the house, do the laundry and cook food for the entire joint family before leaving for school.', context: 'Tara, child labor — VOA, August 2023' },
+      { quote: 'Instead of helping me, he asked if I had any female friends my age who could work at his house. I refused.', context: 'Tara, trafficking survivor — VOA, August 2023' },
+      { quote: 'Last Eid when I went to visit my parents, the offender\'s son threatened me with dire consequences. Now I\'m relieved and can live my own life on my own terms.', context: 'Sampriti, trafficking survivor — IJM, May 2023' },
+      { quote: 'Everyone should know what happened to us.', context: '44-year-old Kuki woman, Manipur — Scroll.in, July 2023' },
+      { quote: 'Sometimes I wake up crying. I remember what they did to me, I keep thinking of it.', context: '19-year-old Kuki woman — Scroll.in, July 2023' },
+      { quote: 'They hit me with the butt of a gun near my eyes thrice and after that, I became unconscious.', context: '18-year-old Kuki-Zo woman — The Quint, July 2023' },
+      { quote: 'Whatever miserable things that they could do to me, they did and the whole night I was not given anything to eat.', context: 'Kuki-Zo abduction survivor — The Quint, July 2023' },
+      { quote: 'I knew I just had that one shot. If I did not escape, I would be killed on this hill.', context: 'Kuki-Zo abduction survivor — The Quint, July 2023' },
+      { quote: 'The inordinate delay in victim compensation demotivates us. Early release of compensation would help in our rehabilitation.', context: 'Trafficking survivor — FairPlanet, 2023' }
+    ]
+  },
+  {
+    name: 'Assault on modesty', count: 230, color: '#a63c3c', cssVar: 'var(--mark-assault)',
+    desc: 'Includes sexual harassment, groping, and stalking. Most incidents happen in public spaces and public transport.',
+    voices: [
+      { quote: 'I have only felt a deep sense of humiliation since I mustered the courage to protest.', context: 'Vinesh Phogat, Olympic wrestler — Al Jazeera, June 2023' },
+      { quote: 'It was the same disgusting pattern over and over again and I am among the victims.', context: 'Vinesh Phogat — Al Jazeera, June 2023' },
+      { quote: 'It\'s been emotionally draining, the PM has not said anything about this case.', context: 'Vinesh Phogat — Al Jazeera, June 2023' },
+      { quote: 'We wanted Singh to be dragged out of his home, but because he is a powerful man he is roaming around.', context: 'Vinesh Phogat — Al Jazeera, June 2023' },
+      { quote: 'Who will listen? If such great athletes did not get justice, how can a normal person feel safe?', context: 'Vinesh Phogat — HRW / Sport and Rights Alliance, 2023' },
+      { quote: 'I was probably 17-18 years old. I was very young and did not have the courage to raise my voice at that time.', context: 'Sakshi Malik, Olympic wrestler — ESPN, December 2023' },
+      { quote: 'It took seven days to register an FIR against the sexual harasser, but it didn\'t even take seven hours to register an FIR against us for protesting.', context: 'Sakshi Malik — Indian wrestlers\' protest, May 2023' },
+      { quote: 'I changed my statement in Court because I was scared for my family, daughter and myself. My family is living under constant threat.', context: 'Father of minor wrestler complainant — SabrangIndia, 2023' },
+      { quote: 'I was forced to ignore sexual harassment in my workplace, because I needed to continue working and earning.', context: 'Aisha, domestic worker, Delhi — UN Women, May 2023' },
+      { quote: 'It is a question of honour for women. If I report any such incident, I might lose my job. And it is always the girl who is blamed.', context: 'Kainaat, domestic worker — UN Women, May 2023' },
+      { quote: 'Adequate punishment should be given to the gang of culprits who abused, sexually and physically assaulted me.', context: 'Kuki survivor — The Quint, 2023' },
+      { quote: 'They said I would get justice, but no action has been taken. Several times, I have thought of taking my life along with my children.', context: 'Meitei woman survivor — Scroll.in, 2023' },
+      { quote: 'The POSH Act is a big wholesome lie. It took six months and a thousand emails just to start an inquiry.', context: 'Woman judge, UP — ThePrint, December 2023' },
+      { quote: 'Kindly permit me to end my life in a dignified way. Let my life be: DISMISSED.', context: 'Woman judge, UP — ThePrint, December 2023' },
+      { quote: 'We have been sitting in protest for over 40 days. The Prime Minister has not spoken a single word about our issue.', context: 'Bajrang Punia, supporting wrestlers — Al Jazeera, June 2023' },
+      { quote: 'If the head of a sports federation is accused of sexual harassment and he is allowed to continue, what message does that send?', context: 'Sports journalist on wrestlers\' protest — Al Jazeera, 2023' },
+      { quote: 'They stripped us naked and paraded us. The whole village was watching and nobody came to help.', context: 'Manipur assault survivor — Scroll.in, July 2023' },
+      { quote: 'I cannot go back to my village. The men who did this to me still live there freely.', context: 'Kuki woman, displaced — Scroll.in, July 2023' },
+      { quote: 'We ran with nothing. Just the clothes on our backs. And then they took even those from us.', context: 'Manipur violence survivor — The Quint, July 2023' },
+      { quote: 'My children ask me why we had to leave our home. I don\'t know what to tell them.', context: 'Displaced Kuki mother — Scroll.in, July 2023' }
+    ]
+  },
+  {
+    name: 'Rape', count: 81, color: '#e06060', cssVar: 'var(--mark-rape)',
+    desc: '81 cases registered every single day. The actual number is estimated to be far higher due to stigma, fear, and systemic barriers to reporting.',
+    voices: [
+      { quote: 'The men said they would kill my son if I moved. They raped me one after the other. I begged them to stop.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'I remember at one point my husband told me he was getting tired of the threats. I told him he could leave me, but I was not going to stop fighting.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'I want to tell other women to keep fighting their fight. It is the only way. Women should not let society shame them.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'I know I still have a target on my back. My fight is not over.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'When Yogi came back to power in 2022, I was worried what would happen with my case. I had belief in Allah and myself.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'I never wanted the death penalty for my attackers but I feel 20 years in jail is not enough.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'Someone let my name slip out. People who had no idea this was my case got to know.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'Instead he started telling me that what I did was wrong, that I should have struck a compromise.', context: 'Aafreen, on a moneylender — Al Jazeera, June 2023' },
+      { quote: 'They hit me with the butt of a gun near my eyes thrice and after that, I became unconscious.', context: '18-year-old Kuki-Zo woman, Manipur — The Quint, July 2023' },
+      { quote: 'Whatever miserable things that they could do to me, they did. The whole night I was not given anything to eat.', context: 'Kuki-Zo rape survivor — The Quint, July 2023' },
+      { quote: 'I knew I just had that one shot. If I did not escape, I would be killed on this hill.', context: 'Kuki-Zo rape survivor — The Quint, July 2023' },
+      { quote: 'Adequate punishment should be given to the gang of culprits who sexually and physically assaulted me.', context: 'Kuki rape survivor — The Quint, July 2023' },
+      { quote: 'Everyone should know what happened to us.', context: '44-year-old Kuki woman, Manipur — Scroll.in, July 2023' },
+      { quote: 'Sometimes I wake up crying. I remember what they did to me, I keep thinking of it.', context: '19-year-old Kuki woman — Scroll.in, July 2023' },
+      { quote: 'They said I would get justice, but no action has been taken. Several times, I have thought of taking my life along with my children.', context: 'Meitei woman survivor — Scroll.in, 2023' },
+      { quote: 'If he is acquitted, the blame will shift even more to me. The villagers will say, see we knew she had lied.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'I had a passion, a stubborn streak to see my case through. That stubbornness kept me going for ten years.', context: 'Aafreen, rape survivor — Al Jazeera, June 2023' },
+      { quote: 'They stripped us and paraded us naked in front of a mob. Nobody stopped them. Nobody helped us.', context: 'Manipur sexual assault survivor — Scroll.in, July 2023' },
+      { quote: 'The video went viral but justice did not. The whole world saw what happened to us, but nothing changed.', context: 'Manipur survivor on viral video — The Quint, July 2023' },
+      { quote: 'I cannot sleep without seeing their faces. Every night I relive what they did to me.', context: 'Kuki rape survivor — Scroll.in, July 2023' }
+    ]
+  },
+  {
+    name: 'Dowry death', count: 17, color: '#8b3535', cssVar: 'var(--mark-dowry)',
+    desc: '17 women are killed every day over dowry — burned, poisoned, or driven to suicide by their husband\'s family.',
+    voices: [
+      { quote: 'We don\'t wish to die but death is better than their abuse. Our in-laws are the reason behind our deaths. We are dying together because it\'s better than dying every day.', context: 'WhatsApp message from three Meena sisters — France24/AFP, 2023' },
+      { quote: 'I am the father of six girls, there is a limit to how much I can give. I had educated them and just doing that was difficult.', context: 'Sardar, father of three sisters — France24, 2023' },
+      { quote: 'She was restricted from using social media, from calling her parents, from flying, all because of this one thing — this dowry.', context: 'Vijith V. Nair, brother of Vismaya — CNN, 2023' },
+      { quote: 'We gave him a good car, but he didn\'t stop demanding for a bigger and more expensive car.', context: 'Vijith V. Nair, brother of Vismaya — CNN, 2023' },
+      { quote: 'Their demands were increasing day by day. They began demanding Rs 36 lakh in dowry from us.', context: 'Bhikhari Singh, father of Nikki — The Federal, 2023' },
+      { quote: 'At the weddings they demanded a Scorpio car. We gave them the car, and then they demanded a Bullet motorcycle. But their demands kept increasing.', context: 'Bhikhari Singh, father — The Federal, 2023' },
+      { quote: 'My daughter kept reassuring me that good days will come. But they never did.', context: 'Nikki\'s mother — The Federal, 2023' },
+      { quote: 'We were beaten and tortured for days. They hit her on the neck and head, threw acid, and set her on fire in front of her child.', context: 'Kanchan, sister of Nikki — The Federal, 2023' },
+      { quote: 'They poured something on my mother, then slapped her, then set her on fire with a lighter.', context: 'Nikki Bhati\'s 6-year-old son (translated) — The Federal, 2023' },
+      { quote: 'Marriages have become commercialized. It\'s like a business proposition where the groom and his family make exorbitant demands.', context: 'Dr. Ranjana Kumari, Centre for Social Research — Al Jazeera, 2023' },
+      { quote: 'I\'m unable to bear their mental torture daily. I don\'t know whom to tell about this. Those who listen want me to compromise.', context: 'Dowry victim\'s messages to father — ThePrint, 2023' },
+      { quote: 'My parents rushed to the hospital. They sold everything they could find to pay for my treatment. He served just nine months for setting me on fire.', context: 'Anju Singh, burn survivor — DailyO, 2023' },
+      { quote: 'You can try to improve India as much as you can, but India won\'t improve when it comes to women\'s issues. Nobody sees what\'s happening inside the house.', context: 'Zaara Khan, aunt of dowry victim — Washington Post, 2023' },
+      { quote: 'Even highly educated people don\'t say no to dowry.', context: 'Suman Nalwa, Senior Delhi Police Officer — Al Jazeera, 2023' },
+      { quote: 'At least 50 percent of all the suicides among women could be dowry related, but they are underreported.', context: 'Donna Fernandes, Vimochana — IndiaSpend, 2023' },
+      { quote: 'We are dying together because it is better than dying every day at their hands.', context: 'Final message from three sisters, Jaipur — France24, 2023' },
+      { quote: 'She called me the night before and said, Papa, please come take me home. I told her to wait one more day. That was the last time I heard her voice.', context: 'Father of dowry death victim — India Today, 2023' }
+    ]
+  },
+  {
+    name: 'Other crimes', count: 291, color: '#733030', cssVar: 'var(--mark-other)',
+    desc: 'Includes acid attacks, abetment to suicide, insult to modesty, voyeurism, trafficking, and cyber crimes against women.',
+    voices: [
+      { quote: 'He changed my face, not my heart. He threw acid on my face, not my dreams.', context: 'Laxmi Agarwal, acid attack survivor — TED Talk, 2023' },
+      { quote: 'Today I love my face because I realized your face is not the only important thing. I gave importance to my work.', context: 'Laxmi Agarwal — CNN, 2023' },
+      { quote: 'When I met more survivors like me, I became angry. Several others were suffering. Society had shunned them instead of the perpetrators.', context: 'Laxmi Agarwal — YourStory, 2023' },
+      { quote: 'Society is cruel and taunts even a normal skinned person, then who was I? I was the victim and I had nothing to be ashamed of.', context: 'Laxmi Agarwal — GICJ, 2023' },
+      { quote: 'A job opportunity boosts the confidence of not just the survivor but also her family. It offers both the public and us, survivors, to interact in the open.', context: 'Laxmi Agarwal — YourStory, 2023' },
+      { quote: 'I tell my story to give hope to the parents and victims of survivors. Through my story, I want to tell all the women to support one another.', context: 'Laxmi Agarwal — GICJ, 2023' },
+      { quote: 'I remember wondering why they would throw warm water on my face, but that thought lasted only for a heavenly fraction of a second.', context: 'Reshma Qureshi, acid attack survivor — The National, 2023' },
+      { quote: 'I have found great strength in retelling my story because it reminds me of just how strong I am.', context: 'Reshma Qureshi — The National, 2023' },
+      { quote: 'I could hear at a distance a strange, terrified, desperate scream. It was me. I was on fire. Even the devil would cover his ears.', context: 'Reshma Qureshi — Being Reshma (book), 2023' },
+      { quote: 'This event was really important to me because what happened to me has happened to lots of other girls, and they\'ll see me and this will give them courage.', context: 'Reshma Qureshi, NYFW — Inside Edition, 2023' },
+      { quote: 'All I could feel was this tremendous amount of pain, it was burning, like someone had thrown me into a fire.', context: 'Sonali Mukherjee, acid attack survivor — CNN, 2023' },
+      { quote: 'I had hardly even lived my life, but that one incident changed the entire meaning of my life.', context: 'Sonali Mukherjee — CNN, 2023' },
+      { quote: 'I decided I don\'t want to die like this, or live like this. I held my father\'s hand and crawled back to life.', context: 'Sonali Mukherjee — CNN, 2023' },
+      { quote: 'Once everything else had failed, I decided to use my face. If you can stare at a picture of a pretty woman then you can look at my burnt face too.', context: 'Sonali Mukherjee — CNN, 2023' },
+      { quote: 'People like these three men, who can spoil someone\'s life in a fraction of a second should be brought to justice.', context: 'Sonali Mukherjee — CNN, 2023' },
+      { quote: 'When I\'m spending time with the girls, I feel great. But when I\'m alone I feel the pain. Now I think they\'re slowly becoming my family.', context: 'Anshu Rajput, acid attack survivor — Chhanv Foundation, 2023' },
+      { quote: 'The moment he threw the acid on my face, I felt a burning sensation; there was no one next to me and I kept on squirming.', context: 'Madhu Kashyap, attacked at 17 — Chhanv Foundation, 2023' },
+      { quote: 'She left a note. It said she was tired. Tired of fighting alone.', context: 'Manisha Goswami case — The Logical Indian, 2023' },
+      { quote: 'I was trapped and helpless. I was beaten with a ladle when I refused to work as a prostitute.', context: 'Roshni, trafficking survivor — UNODC, cited 2023' },
+      { quote: 'The lady there said she had paid for me and so I can\'t refuse.', context: 'Roshni, trafficking survivor — UNODC, cited 2023' },
+      { quote: 'My own brother threw acid on me because I wanted to study further. My crime was wanting an education.', context: 'Acid attack survivor, Uttar Pradesh — Chhanv Foundation, 2023' },
+      { quote: 'After the attack, even my shadow scared me. I couldn\'t look in a mirror for two years.', context: 'Acid attack survivor — Stop Acid Attacks campaign, 2023' },
+      { quote: 'The acid burned through seven layers of skin in seconds. The pain never fully goes away.', context: 'Acid attack survivor — Sheroes Hangout, 2023' },
+      { quote: 'They told me no one would marry me now. I told them I don\'t need anyone\'s approval to live.', context: 'Acid attack survivor — Chhanv Foundation, 2023' },
+      { quote: 'The attacker got bail in three months. My surgeries will continue for years.', context: 'Acid attack survivor — Stop Acid Attacks, 2023' }
+    ]
+  },
+];
+
+const TOTAL = 1228;
+let started = false;
+
+// ─── SMOOTH SCROLL ENGINE ───
+(function () {
+  let current = window.scrollY;
+  let target = window.scrollY;
+  let rafId = null;
+  const ease = 0.08; // lower = silkier (0.06–0.1 sweet spot)
+
+  function tick() {
+    const diff = target - current;
+    if (Math.abs(diff) < 0.5) {
+      current = target;
+      window.scrollTo(0, current);
+      rafId = null;
+      return;
+    }
+    current += diff * ease;
+    window.scrollTo(0, current);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    target += e.deltaY * 1.2;
+    target = Math.max(0, Math.min(target, document.body.scrollHeight - window.innerHeight));
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  }, { passive: false });
+
+  // Keep internal state in sync when scroll happens via keyboard/touch
+  window.addEventListener('scroll', () => {
+    if (!rafId) { current = window.scrollY; target = window.scrollY; }
+  }, { passive: true });
+})();
+
+// ─── INDIA MAP OUTLINE ───
+const INDIA_PATH = [
+  [297,52],[285,58],[280,72],[275,85],[268,82],[262,90],[270,102],[278,98],
+  [282,108],[290,115],[295,108],[305,118],[298,128],[305,138],[300,148],
+  [308,155],[302,168],[310,175],[305,188],[298,195],[305,205],[295,215],
+  [290,228],[285,238],[278,248],[270,258],[262,268],[268,278],[275,285],
+  [272,298],[265,305],[258,318],[262,328],[258,338],[250,345],[245,358],
+  [248,368],[242,378],[248,388],[255,395],[260,405],[255,415],[262,425],
+  [268,435],[275,445],[280,455],[275,462],[268,468],[260,475],[265,485],
+  [275,478],[285,472],[292,465],[298,458],[305,465],[312,472],[318,462],
+  [325,455],[332,448],[340,455],[348,448],[355,440],[360,430],[355,420],
+  [348,410],[342,400],[348,390],[355,382],[362,375],[368,365],[375,358],
+  [380,348],[385,338],[378,328],[372,318],[368,308],[375,298],[380,288],
+  [385,278],[378,268],[372,258],[365,248],[358,238],[355,228],[348,218],
+  [342,208],[335,198],[328,188],[322,178],[318,168],[325,158],[332,148],
+  [338,138],[335,128],[328,118],[322,108],[315,98],[310,88],[305,78],
+  [300,68],[297,52]
+];
+
+// ─── INTRO: MAP CANVAS ───
+const mapCanvas = document.getElementById('mapCanvas');
+const mapCtx = mapCanvas.getContext('2d');
+let mapDots = [];
+let mapDotsRevealed = 0;
+let introDotsInterval = null;
+
+function resizeMapCanvas() {
+  mapCanvas.width = window.innerWidth;
+  mapCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', () => {
+  resizeMapCanvas();
+  if (mapDots.length) drawMapFrame();
+});
+resizeMapCanvas();
+
+function isInsideMap(x, y, cx, cy, scale) {
+  const pts = INDIA_PATH.map(p => [(p[0] - 300) * scale + cx, (p[1] - 270) * scale + cy]);
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i][0], yi = pts[i][1];
+    const xj = pts[j][0], yj = pts[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function getCategoryForIndex(idx) {
+  let sum = 0;
+  for (let i = 0; i < categories.length; i++) {
+    sum += categories[i].count;
+    if (idx < sum) return i;
+  }
+  return categories.length - 1;
+}
+
+function generateMapDots() {
+  const w = mapCanvas.width, h = mapCanvas.height;
+  const cx = w / 2, cy = h / 2;
+  const scale = Math.min(w, h) / 550;
+  mapDots = [];
+  let attempts = 0;
+  while (mapDots.length < TOTAL && attempts < 100000) {
+    const x = cx + (Math.random() - 0.5) * 320 * scale;
+    const y = cy + (Math.random() - 0.5) * 480 * scale;
+    if (isInsideMap(x, y, cx, cy, scale)) {
+      mapDots.push({ x, y, catIdx: getCategoryForIndex(mapDots.length), opacity: 0, targetOpacity: 0.6 + Math.random() * 0.4, size: 1.5 + Math.random() * 2.5 });
+    }
+    attempts++;
+  }
+  while (mapDots.length < TOTAL) {
+    const x = cx + (Math.random() - 0.5) * 280 * scale;
+    const y = cy + (Math.random() - 0.5) * 420 * scale;
+    mapDots.push({ x, y, catIdx: getCategoryForIndex(mapDots.length), opacity: 0, targetOpacity: 0.6 + Math.random() * 0.4, size: 1.5 + Math.random() * 2.5 });
+  }
+}
+
+function drawMapFrame() {
+  mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+  const w = mapCanvas.width, h = mapCanvas.height;
+  const cx = w / 2, cy = h / 2;
+  const scale = Math.min(w, h) / 550;
+
+  mapCtx.beginPath();
+  const pts = INDIA_PATH.map(p => [(p[0] - 300) * scale + cx, (p[1] - 270) * scale + cy]);
+  mapCtx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) mapCtx.lineTo(pts[i][0], pts[i][1]);
+  mapCtx.closePath();
+  mapCtx.strokeStyle = 'rgba(196, 64, 64, 0.06)';
+  mapCtx.lineWidth = 1;
+  mapCtx.stroke();
+
+  for (let i = 0; i < mapDotsRevealed; i++) {
+    const d = mapDots[i];
+    if (d.opacity < d.targetOpacity) d.opacity = Math.min(d.opacity + 0.06, d.targetOpacity);
+    mapCtx.beginPath();
+    mapCtx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+    mapCtx.fillStyle = `rgba(196, 64, 64, ${d.opacity})`;
+    mapCtx.fill();
+  }
+}
+
+function startIntroDots() {
+  generateMapDots();
+  mapCanvas.classList.add('visible');
+  document.getElementById('introCounter').classList.add('on');
+
+  introDotsInterval = setInterval(() => {
+    if (mapDotsRevealed >= TOTAL) { clearInterval(introDotsInterval); return; }
+    let speed;
+    if (mapDotsRevealed < 100) speed = 3;
+    else if (mapDotsRevealed < 400) speed = 6;
+    else if (mapDotsRevealed < 900) speed = 10;
+    else if (mapDotsRevealed < 1150) speed = 6;
+    else speed = 2;
+    for (let i = 0; i < speed && mapDotsRevealed < TOTAL; i++) mapDotsRevealed++;
+    document.getElementById('iNum').textContent = mapDotsRevealed.toLocaleString();
+    drawMapFrame();
+  }, 16);
+}
+
+setTimeout(startIntroDots, 2800);
+
+// ─── FLY TRANSITION ───
+const flyCanvas = document.getElementById('flyCanvas');
+const flyCtx = flyCanvas.getContext('2d');
+
+function resizeFlyCanvas() {
+  flyCanvas.width = window.innerWidth;
+  flyCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeFlyCanvas);
+resizeFlyCanvas();
+
+function startFlyTransition() {
+  flyCanvas.classList.add('on');
+  const W = flyCanvas.width;
+  const H = flyCanvas.height;
+
+  // Build sections so DOM dots exist (invisible)
+  showMain(true);
+
+  requestAnimationFrame(() => {
+    const cat0 = document.getElementById('cat-0');
+    const catDotEls = cat0.querySelectorAll('.cat-dot');
+
+    // Temporarily set section + dots to their FINAL layout state for accurate measurement
+    // (Section starts at translateY(25px), dots at translateY(20px) scale(0.4) — we need final positions)
+    cat0.style.transition = 'none';
+    cat0.style.transform = 'translateY(0)';
+    cat0.style.opacity = '0';
+    catDotEls.forEach(dot => {
+      dot.style.transition = 'none';
+      dot.style.transform = 'translateY(0) scale(1)';
+    });
+    void cat0.offsetHeight; // force reflow
+
+    // Measure exact target positions (pixel-perfect for handoff)
+    const targets = [];
+    catDotEls.forEach(dot => {
+      const r = dot.getBoundingClientRect();
+      targets.push({ x: r.left + r.width / 2, y: r.top + r.height / 2, size: r.width / 2 });
+    });
+
+    // Restore section + dots to initial state (invisible, CSS defaults)
+    cat0.style.transition = '';
+    cat0.style.transform = '';
+    cat0.style.opacity = '';
+    catDotEls.forEach(dot => {
+      dot.style.transition = '';
+      dot.style.transform = '';
+    });
+
+    // Build fly dots: 366 "primary" (one per target, will STAY) + 862 "extras" (fade out as they merge)
+    const numTargets = targets.length;
+    const shuffled = [...mapDots].sort(() => Math.random() - 0.5);
+    const flyDots = shuffled.map((d, i) => {
+      const isPrimary = i < numTargets;
+      const targetIdx = isPrimary ? i : (i % numTargets);
+      const tp = targets[targetIdx];
+      return {
+        startX: d.x,
+        startY: d.y,
+        targetX: tp.x + (isPrimary ? 0 : (Math.random() - 0.5) * 5),
+        targetY: tp.y + (isPrimary ? 0 : (Math.random() - 0.5) * 5),
+        startSize: d.size,
+        targetSize: tp.size,
+        startOpacity: d.opacity,
+        isPrimary,
+        delay: Math.random() * 0.15
+      };
+    });
+
+    const totalFrames = 150; // ~2.5s at 60fps
+    let frame = 0;
+
+    function animateFly() {
+      flyCtx.clearRect(0, 0, W, H);
+      const t = Math.min(frame / totalFrames, 1);
+
+      for (const d of flyDots) {
+        const localT = Math.max(0, Math.min((t - d.delay) / (1 - d.delay - 0.1), 1));
+        const ease = localT < 0.5
+          ? 4 * localT * localT * localT
+          : 1 - Math.pow(-2 * localT + 2, 3) / 2;
+
+        const cx = d.startX + (d.targetX - d.startX) * ease;
+        const cy = d.startY + (d.targetY - d.startY) * ease;
+        const sz = d.startSize + (d.targetSize - d.startSize) * ease;
+
+        let alpha;
+        if (d.isPrimary) {
+          // Primary dots: smoothly reach 0.85 opacity and STAY — never fade out
+          alpha = d.startOpacity + (0.85 - d.startOpacity) * ease;
+        } else {
+          // Extra dots: fade out during the second half of their journey (merging effect)
+          const fadeStart = 0.5;
+          if (localT > fadeStart) {
+            const fadeProgress = (localT - fadeStart) / (1 - fadeStart);
+            alpha = d.startOpacity * (1 - fadeProgress);
+          } else {
+            alpha = d.startOpacity;
+          }
+        }
+
+        if (alpha > 0.01) {
+          flyCtx.beginPath();
+          flyCtx.arc(cx, cy, sz, 0, Math.PI * 2);
+          flyCtx.fillStyle = `rgba(196, 64, 64, ${alpha})`;
+          flyCtx.fill();
+        }
+      }
+
+      frame++;
+      if (t < 1) {
+        requestAnimationFrame(animateFly);
+      } else {
+        // Animation complete — primary dots are at exact target positions at 0.85 opacity.
+        // Seamless swap: show DOM dots INSTANTLY (no transition), then hide canvas.
+        cat0.classList.add('instant-reveal');
+        cat0.classList.add('on');
+
+        // Count up the number
+        const numEl = cat0.querySelector('.cat-number');
+        if (numEl) {
+          const tgt = parseInt(numEl.textContent);
+          if (!isNaN(tgt)) animateCountUp(numEl, tgt, 1800);
+        }
+
+        // Next frame: DOM dots are painted at exact same positions → hide canvas instantly
+        requestAnimationFrame(() => {
+          flyCanvas.style.transition = 'none';
+          flyCanvas.classList.remove('on');
+          // Restore canvas transition and re-enable dot transitions after a beat
+          requestAnimationFrame(() => { flyCanvas.style.transition = ''; });
+          setTimeout(() => cat0.classList.remove('instant-reveal'), 400);
+          setupObserver();
+          setTimeout(() => document.getElementById('scrollHint').classList.add('on'), 1000);
+        });
+      }
+    }
+    requestAnimationFrame(animateFly);
+  });
+}
+
+// ─── QUOTE CARD (single, hover only) ───
+const quoteCard = document.getElementById('quoteCard');
+const qText = document.getElementById('qText');
+const qContext = document.getElementById('qContext');
+let currentHoverDot = null;
+
+function showQuote(e) {
+  const dot = e.currentTarget;
+  currentHoverDot = dot;
+
+  qText.textContent = '\u201C' + dot.dataset.quote + '\u201D';
+  qContext.textContent = '\u2014 ' + dot.dataset.context;
+  quoteCard.style.borderLeftColor = dot.dataset.catColor;
+
+  // Position near the dot
+  const rect = dot.getBoundingClientRect();
+  let left = rect.right + 14;
+  let top = rect.top - 10;
+
+  if (left + 320 > window.innerWidth) left = rect.left - 316;
+  if (left < 10) left = Math.max(10, rect.left + rect.width / 2 - 150);
+  if (top + 140 > window.innerHeight) top = window.innerHeight - 160;
+  if (top < 10) top = 10;
+
+  quoteCard.style.left = left + 'px';
+  quoteCard.style.top = top + 'px';
+  quoteCard.classList.add('on');
+}
+
+function hideQuote(e) {
+  if (e.currentTarget === currentHoverDot) {
+    quoteCard.classList.remove('on');
+    currentHoverDot = null;
+  }
+}
+
+// ─── BUILD SCROLL SECTIONS ───
+function buildSections() {
+  const container = document.getElementById('catContainer');
+  container.innerHTML = '';
+
+  categories.forEach((cat, ci) => {
+    const section = document.createElement('div');
+    section.className = 'cat-section';
+    section.id = 'cat-' + ci;
+
+    const left = document.createElement('div');
+    left.className = 'cat-left';
+    left.innerHTML = `
+      <div class="cat-number" style="color: ${cat.cssVar}">${cat.count}</div>
+      <div class="cat-name">${cat.name}</div>
+      <div class="cat-suffix">per day</div>
+      <div class="cat-desc">${cat.desc}</div>
+    `;
+    section.appendChild(left);
+
+    const right = document.createElement('div');
+    right.className = 'cat-right';
+
+    for (let i = 0; i < cat.count; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'cat-dot';
+      const sz = 5 + Math.random() * 7;
+      dot.style.width = sz + 'px';
+      dot.style.height = sz + 'px';
+      dot.style.backgroundColor = cat.color;
+
+      const px = Math.random() * 90 + 2;
+      const py = Math.random() * 90 + 2;
+      dot.style.left = px + '%';
+      dot.style.top = py + '%';
+
+      const delay = (i / cat.count) * 1.2;
+      dot.style.transitionDelay = delay.toFixed(2) + 's';
+
+      // Randomize pulse so dots breathe at different rhythms
+      dot.style.setProperty('--pulse-dur', (2.5 + Math.random() * 3).toFixed(1) + 's');
+      dot.style.setProperty('--pulse-del', (Math.random() * 4).toFixed(1) + 's');
+
+      // Cycle through voices so consecutive dots get different quotes
+      const voice = cat.voices[i % cat.voices.length];
+      dot.dataset.quote = voice.quote;
+      dot.dataset.context = voice.context;
+      dot.dataset.catColor = cat.color;
+
+      dot.addEventListener('mouseenter', showQuote);
+      dot.addEventListener('mouseleave', hideQuote);
+
+      right.appendChild(dot);
+    }
+
+    const hint = document.createElement('div');
+    hint.className = 'hover-hint';
+    hint.textContent = 'Each dot is a case. Hover over them to know more.';
+    right.appendChild(hint);
+
+    section.appendChild(right);
+    container.appendChild(section);
+  });
+
+}
+
+let mainBuilt = false;
+function showMain(skipObservers) {
+  if (mainBuilt) return;
+  mainBuilt = true;
+  const main = document.getElementById('main');
+  main.classList.add('on');
+  requestAnimationFrame(() => main.classList.add('visible'));
+  buildSections();
+  if (!skipObservers) {
+    setTimeout(() => {
+      setupObserver();
+    }, 300);
+    setTimeout(() => document.getElementById('scrollHint').classList.add('on'), 2000);
+  }
+}
+
+function setupObserver() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !entry.target.classList.contains('on')) {
+        entry.target.classList.add('on');
+        // Animate the number counting up
+        const numEl = entry.target.querySelector('.cat-number');
+        if (numEl) {
+          const target = parseInt(numEl.textContent);
+          if (!isNaN(target)) animateCountUp(numEl, target, 1800);
+        }
+      }
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.cat-section').forEach(s => observer.observe(s));
+
+  const closingObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('on'); });
+  }, { threshold: 0.3 });
+  closingObs.observe(document.getElementById('closing-section'));
+
+  // Figure formation trigger
+  const figureObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        startFigureAnimation();
+        figureObs.disconnect();
+      }
+    });
+  }, { threshold: 0.15 });
+  figureObs.observe(document.getElementById('figure-section'));
+
+  const firstCat = document.getElementById('cat-0');
+}
+
+// ─── FIGURE FORMATION (closing visual) ───
+const figureCanvas = document.getElementById('figureCanvas');
+const figureCtx = figureCanvas.getContext('2d');
+
+// Sad closed eyes + teardrop
+// Built as pixel-space functions — shapes scale to fill the canvas
+
+let figureDots = [];
+let figureStarted = false;
+
+function isInsidePoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1];
+    const xj = poly[j][0], yj = poly[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// Build a crescent (closed eye) polygon in pixel coords
+function buildEyeCrescent(cx, cy, eyeW, outerDepth, innerDepth, steps) {
+  const poly = [];
+  // Outer arc (bottom of crescent — the deep curve)
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    poly.push([
+      cx - eyeW / 2 + t * eyeW,
+      cy + Math.sin(t * Math.PI) * outerDepth
+    ]);
+  }
+  // Inner arc (top of crescent — shallower)
+  const inW = eyeW * 0.72;
+  for (let i = steps; i >= 0; i--) {
+    const t = i / steps;
+    poly.push([
+      cx - inW / 2 + t * inW,
+      cy + 4 + Math.sin(t * Math.PI) * innerDepth
+    ]);
+  }
+  return poly;
+}
+
+// Build teardrop polygon in pixel coords
+function buildTeardrop(cx, tipY, bulbCY, bulbR) {
+  const poly = [];
+  // Left side: cubic curve from tip down to bulb
+  for (let i = 0; i <= 28; i++) {
+    const t = i / 28;
+    const y = tipY + t * (bulbCY - tipY + bulbR * 0.35);
+    const halfW = t * t * bulbR;
+    poly.push([cx - halfW, y]);
+  }
+  // Bottom arc
+  for (let i = 0; i <= 24; i++) {
+    const a = Math.PI * 0.5 + (i / 24) * Math.PI;
+    poly.push([cx + Math.cos(a) * bulbR, bulbCY + Math.sin(a) * bulbR]);
+  }
+  // Right side
+  for (let i = 28; i >= 0; i--) {
+    const t = i / 28;
+    const y = tipY + t * (bulbCY - tipY + bulbR * 0.35);
+    const halfW = t * t * bulbR;
+    poly.push([cx + halfW, y]);
+  }
+  return poly;
+}
+
+function generateFigureDots() {
+  const w = figureCanvas.width, h = figureCanvas.height;
+  const cx = w / 2;
+
+  // Layout: eyes at ~30% from top, teardrop below right eye
+  const eyeY = h * 0.28;
+  const gap = w * 0.08;             // gap between eyes
+  const eyeW = w * 0.34;            // each eye width
+  const outerDepth = h * 0.18;      // how deep the outer arc dips
+  const innerDepth = h * 0.07;      // how deep the inner arc dips (thinner)
+
+  const leftCX = cx - gap / 2 - eyeW / 2;
+  const rightCX = cx + gap / 2 + eyeW / 2;
+
+  const leftEye = buildEyeCrescent(leftCX, eyeY, eyeW, outerDepth, innerDepth, 48);
+  const rightEye = buildEyeCrescent(rightCX, eyeY, eyeW, outerDepth, innerDepth, 48);
+
+  // Teardrop: below right eye
+  const tearTipY = eyeY + outerDepth + h * 0.04;
+  const tearBulbCY = tearTipY + h * 0.22;
+  const tearR = w * 0.055;
+  const tear = buildTeardrop(rightCX, tearTipY, tearBulbCY, tearR);
+
+  const shapes = [leftEye, rightEye, tear];
+
+  // Allocate dots: ~480 per eye, ~268 for teardrop
+  const eyeTarget = Math.floor(TOTAL * 0.39);
+  const tearTarget = TOTAL - eyeTarget * 2;
+  const targets = [eyeTarget, eyeTarget, tearTarget];
+
+  figureDots = [];
+
+  for (let si = 0; si < 3; si++) {
+    const shape = shapes[si];
+    const target = targets[si];
+    // Compute bounding box
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const p of shape) {
+      if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+      if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+    }
+    let count = 0, attempts = 0;
+    while (count < target && attempts < 200000) {
+      const px = minX + Math.random() * (maxX - minX);
+      const py = minY + Math.random() * (maxY - minY);
+      if (isInsidePoly(px, py, shape)) {
+        figureDots.push({
+          tx: px, ty: py,
+          sx: (Math.random() - 0.5) * w * 2.5 + cx,
+          sy: (Math.random() - 0.5) * h * 2.5 + h / 2,
+          size: 1.4 + Math.random() * 2.6,
+          catIdx: getCategoryForIndex(figureDots.length),
+          delay: Math.random() * 0.55,
+          targetOpacity: 0.5 + Math.random() * 0.35
+        });
+        count++;
+      }
+      attempts++;
+    }
+    // Fallback: fill remaining near shape centre
+    while (count < target) {
+      const px = (minX + maxX) / 2 + (Math.random() - 0.5) * (maxX - minX) * 0.5;
+      const py = (minY + maxY) / 2 + (Math.random() - 0.5) * (maxY - minY) * 0.5;
+      figureDots.push({
+        tx: px, ty: py,
+        sx: (Math.random() - 0.5) * w * 2 + cx,
+        sy: (Math.random() - 0.5) * h * 2 + h / 2,
+        size: 1.2 + Math.random() * 2.4,
+        catIdx: getCategoryForIndex(figureDots.length),
+        delay: Math.random() * 0.55,
+        targetOpacity: 0.4 + Math.random() * 0.35
+      });
+      count++;
+    }
+  }
+}
+
+function startFigureAnimation() {
+  if (figureStarted) return;
+  figureStarted = true;
+
+  figureCanvas.width = figureCanvas.clientWidth;
+  figureCanvas.height = figureCanvas.clientHeight;
+  generateFigureDots();
+
+  const startTime = performance.now();
+  const duration = 5500; // 5.5 seconds
+
+  function frame(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    figureCtx.clearRect(0, 0, figureCanvas.width, figureCanvas.height);
+
+    for (const d of figureDots) {
+      const dp = Math.max(0, Math.min(1, (progress - d.delay) / 0.5));
+      const eased = 1 - Math.pow(1 - dp, 3); // ease-out cubic
+
+      const x = d.sx + (d.tx - d.sx) * eased;
+      const y = d.sy + (d.ty - d.sy) * eased;
+
+      figureCtx.globalAlpha = dp * d.targetOpacity;
+      figureCtx.fillStyle = categories[d.catIdx].color;
+      figureCtx.beginPath();
+      figureCtx.arc(x, y, d.size, 0, Math.PI * 2);
+      figureCtx.fill();
+    }
+    figureCtx.globalAlpha = 1;
+
+    if (progress < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      breatheFigure();
+      // Reveal closing line
+      const cl = document.querySelector('.figure-closing-line');
+      if (cl) {
+        setTimeout(() => {
+          cl.style.opacity = '1';
+          cl.style.transform = 'translateY(0)';
+        }, 600);
+      }
+      // Reveal live counter below
+      const lc = document.getElementById('liveCounter');
+      if (lc) {
+        setTimeout(() => {
+          lc.style.opacity = '1';
+          lc.style.transform = 'translateY(0)';
+        }, 2500);
+      }
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+function breatheFigure() {
+  const start = performance.now();
+
+  function tick(now) {
+    const t = (now - start) / 1000;
+    figureCtx.clearRect(0, 0, figureCanvas.width, figureCanvas.height);
+
+    for (let i = 0; i < figureDots.length; i++) {
+      const d = figureDots[i];
+      const phase = t * (0.25 + (i % 11) * 0.03) + i * 0.05;
+      const opacity = d.targetOpacity * (0.7 + Math.sin(phase) * 0.3);
+
+      figureCtx.globalAlpha = opacity;
+      figureCtx.fillStyle = categories[d.catIdx].color;
+      figureCtx.beginPath();
+      figureCtx.arc(d.tx, d.ty, d.size, 0, Math.PI * 2);
+      figureCtx.fill();
+    }
+    figureCtx.globalAlpha = 1;
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
+
+
+// ─── NUMBER COUNT-UP ANIMATION ───
+function animateCountUp(el, target, duration) {
+  const start = performance.now();
+  const initial = 0;
+  function tick(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    el.textContent = Math.round(initial + (target - initial) * eased);
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ─── START BUTTON ───
+document.getElementById('startBtn').onclick = () => {
+  if (started) return;
+  started = true;
+  if (introDotsInterval) clearInterval(introDotsInterval);
+  mapDotsRevealed = TOTAL;
+  drawMapFrame();
+
+  const intro = document.getElementById('intro');
+  intro.classList.add('fading');
+  document.getElementById('introCounter').classList.remove('on');
+
+  setTimeout(() => {
+    intro.classList.add('gone');
+    startFlyTransition();
+  }, 1200);
+};
+</script>
+</body>
+</html>
