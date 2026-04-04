@@ -746,31 +746,22 @@ let started = false;
 
 
 // ─── INDIA MAP OUTLINE ───
-// Projected from real geographic coordinates (lat/lon) to path space
-// pathX = 148 + (lon - 68) * 10.48,  pathY = 52 + (37 - lat) * 15.17
 const INDIA_PATH = [
-  // NW coast — Gujarat/Pakistan (~68.2°E, 23.6°N)
-  [150,255],
-  // Pakistan border north — Rajasthan, Punjab, J&K
-  [149,204],[160,128],[185,90],[200,75],[211,52],
-  // Himalayas (northern border) going east
-  [232,67],[253,113],[268,150],[284,165],
-  [321,181],[331,196],[357,201],[373,204],
-  [389,196],[410,192],[452,181],
-  // Northeast states (Arunachal → Nagaland → Manipur → Mizoram)
-  [456,204],[447,234],[436,252],[426,264],[415,272],[405,280],[400,280],
-  // Bangladesh/Bengal coast
-  [395,280],[385,280],[373,280],[368,287],[353,287],
-  // East coast south — Odisha, AP, Tamil Nadu
-  [342,302],[326,325],[310,348],[295,363],[284,386],
-  [274,408],[269,431],[263,454],[258,469],[253,485],
-  // Kanyakumari (southern tip ~77.5°E, 8.1°N)
-  [247,491],
-  // West coast north — Kerala, Karnataka, Goa, Maharashtra
-  [237,485],[232,477],[227,454],[221,439],[216,409],
-  [211,386],[206,355],[200,332],[198,310],[200,295],[195,280],
-  // Gujarat coast (simplified — Kathiawar peninsula as slight bump)
-  [183,272],[169,272],[158,268],[153,264],[150,255]
+  [297,52],[285,58],[280,72],[275,85],[268,82],[262,90],[270,102],[278,98],
+  [282,108],[290,115],[295,108],[305,118],[298,128],[305,138],[300,148],
+  [308,155],[302,168],[310,175],[305,188],[298,195],[305,205],[295,215],
+  [290,228],[285,238],[278,248],[270,258],[262,268],[268,278],[275,285],
+  [272,298],[265,305],[258,318],[262,328],[258,338],[250,345],[245,358],
+  [248,368],[242,378],[248,388],[255,395],[260,405],[255,415],[262,425],
+  [268,435],[275,445],[280,455],[275,462],[268,468],[260,475],[265,485],
+  [275,478],[285,472],[292,465],[298,458],[305,465],[312,472],[318,462],
+  [325,455],[332,448],[340,455],[348,448],[355,440],[360,430],[355,420],
+  [348,410],[342,400],[348,390],[355,382],[362,375],[368,365],[375,358],
+  [380,348],[385,338],[378,328],[372,318],[368,308],[375,298],[380,288],
+  [385,278],[378,268],[372,258],[365,248],[358,238],[355,228],[348,218],
+  [342,208],[335,198],[328,188],[322,178],[318,168],[325,158],[332,148],
+  [338,138],[335,128],[328,118],[322,108],[315,98],[310,88],[305,78],
+  [300,68],[297,52]
 ];
 
 // ─── INTRO: MAP CANVAS ───
@@ -816,51 +807,19 @@ function generateMapDots() {
   const scale = Math.min(w, h) / 550;
   mapDots = [];
 
-  // High-crime states — weighted by NCRB 2023 cases, coords in INDIA_PATH space
-  // Derived from geographic centers: pathX=148+(lon-68)*10.48, pathY=52+(37-lat)*15.17
-  const zones = [
-    { cx: 279, cy: 204, rx: 44, ry: 46, weight: 0.28 },  // Uttar Pradesh  (~80.5°E,27°N)
-    { cx: 206, cy: 204, rx: 44, ry: 44, weight: 0.15 },  // Rajasthan      (~73.5°E,27°N)
-    { cx: 253, cy: 257, rx: 42, ry: 36, weight: 0.12 },  // Madhya Pradesh (~78°E,23.5°N)
-    { cx: 232, cy: 325, rx: 40, ry: 36, weight: 0.10 },  // Maharashtra    (~76°E,19°N)
-    { cx: 352, cy: 257, rx: 20, ry: 34, weight: 0.07 },  // West Bengal    (~87.5°E,23.5°N)
-    { cx: 331, cy: 227, rx: 26, ry: 24, weight: 0.06 },  // Bihar          (~85.5°E,25.5°N)
-    { cx: 237, cy: 176, rx: 20, ry: 20, weight: 0.08 },  // Delhi+Haryana  (~76.5°E,28.8°N)
-    { cx: 316, cy: 302, rx: 28, ry: 26, weight: 0.07 },  // Odisha         (~84°E,20.5°N)
-    { cx: 263, cy: 355, rx: 30, ry: 36, weight: 0.06 },  // AP+Telangana   (~79°E,16.5°N)
-    { cx: 175, cy: 268, rx: 18, ry: 16, weight: 0.04 },  // Gujarat        (~71°E,22.5°N)
-  ];
-
-  const totalW = zones.reduce((s, z) => s + z.weight, 0);
-
   let attempts = 0;
-  while (mapDots.length < TOTAL && attempts < 400000) {
-    // Pick a zone weighted by crime share
-    let r = Math.random() * totalW;
-    let zone = zones[0];
-    for (const z of zones) { r -= z.weight; if (r <= 0) { zone = z; break; } }
-
-    // Gaussian sample within zone
-    const angle = Math.random() * Math.PI * 2;
-    const mag = Math.sqrt(-2 * Math.log(Math.random() + 0.0001));
-    const px = zone.cx + Math.cos(angle) * mag * zone.rx * 0.5;
-    const py = zone.cy + Math.sin(angle) * mag * zone.ry * 0.5;
-
-    const sx = (px - 300) * scale + cx;
-    const sy = (py - 270) * scale + cy;
-
-    if (isInsideMap(sx, sy, cx, cy, scale)) {
-      mapDots.push({ x: sx, y: sy, catIdx: getCategoryForIndex(mapDots.length), opacity: 0, targetOpacity: 0.6 + Math.random() * 0.4, size: 1.5 + Math.random() * 2.5 });
+  while (mapDots.length < TOTAL && attempts < 100000) {
+    const x = cx + (Math.random() - 0.5) * 320 * scale;
+    const y = cy + (Math.random() - 0.5) * 480 * scale;
+    if (isInsideMap(x, y, cx, cy, scale)) {
+      mapDots.push({ x, y, catIdx: getCategoryForIndex(mapDots.length), opacity: 0, targetOpacity: 0.6 + Math.random() * 0.4, size: 1.5 + Math.random() * 2.5 });
     }
     attempts++;
   }
-
-  // Fallback: place remaining dots directly in zones without boundary check
   while (mapDots.length < TOTAL) {
-    const zone = zones[Math.floor(Math.random() * zones.length)];
-    const px = zone.cx + (Math.random() - 0.5) * zone.rx;
-    const py = zone.cy + (Math.random() - 0.5) * zone.ry;
-    mapDots.push({ x: (px - 300) * scale + cx, y: (py - 270) * scale + cy, catIdx: getCategoryForIndex(mapDots.length), opacity: 0, targetOpacity: 0.6 + Math.random() * 0.4, size: 1.5 + Math.random() * 2.5 });
+    const x = cx + (Math.random() - 0.5) * 280 * scale;
+    const y = cy + (Math.random() - 0.5) * 420 * scale;
+    mapDots.push({ x, y, catIdx: getCategoryForIndex(mapDots.length), opacity: 0, targetOpacity: 0.6 + Math.random() * 0.4, size: 1.5 + Math.random() * 2.5 });
   }
 }
 
@@ -875,8 +834,8 @@ function drawMapFrame() {
   mapCtx.moveTo(pts[0][0], pts[0][1]);
   for (let i = 1; i < pts.length; i++) mapCtx.lineTo(pts[i][0], pts[i][1]);
   mapCtx.closePath();
-  mapCtx.strokeStyle = 'rgba(196, 64, 64, 0.35)';
-  mapCtx.lineWidth = 1.5;
+  mapCtx.strokeStyle = 'rgba(196, 64, 64, 0.06)';
+  mapCtx.lineWidth = 1;
   mapCtx.stroke();
 
   for (let i = 0; i < mapDotsRevealed; i++) {
