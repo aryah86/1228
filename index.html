@@ -1146,7 +1146,12 @@ function setupObserver() {
   document.querySelectorAll('.cat-section').forEach(s => observer.observe(s));
 
   const closingObs = new IntersectionObserver((entries) => {
-    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('on'); });
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('on');
+        document.getElementById('scrollHint').classList.remove('on');
+      }
+    });
   }, { threshold: 0.3 });
   closingObs.observe(document.getElementById('closing-section'));
 
