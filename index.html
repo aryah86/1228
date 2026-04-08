@@ -515,27 +515,22 @@
   /* === MUSIC BUTTON === */
   #musicBtn {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
+    top: 1.4rem;
+    right: 1.6rem;
     z-index: 200;
-    background: rgba(28, 25, 22, 0.85);
-    border: 1px solid rgba(212, 196, 176, 0.2);
+    background: none;
+    border: none;
     color: var(--dust);
-    font-family: 'Jost', sans-serif;
-    font-size: 0.7rem;
-    font-weight: 300;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 0.5rem 0.9rem;
+    font-size: 1.2rem;
     cursor: pointer;
-    border-radius: 2px;
     opacity: 0;
-    transition: opacity 0.6s ease, color 0.3s ease, border-color 0.3s ease;
-    backdrop-filter: blur(4px);
+    transition: opacity 0.6s ease, color 0.3s ease;
     pointer-events: none;
+    line-height: 1;
+    padding: 0.3rem;
   }
-  #musicBtn.on { opacity: 1; pointer-events: auto; }
-  #musicBtn:hover { color: var(--bone); border-color: rgba(212, 196, 176, 0.4); }
+  #musicBtn.on { opacity: 0.5; pointer-events: auto; }
+  #musicBtn:hover { opacity: 1; color: var(--bone); }
   #ytPlayer { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
 </style>
 </head>
@@ -583,7 +578,7 @@
 
 <div class="scroll-hint" id="scrollHint">Scroll</div>
 <div id="ytPlayer"></div>
-<button id="musicBtn" aria-label="Toggle music">♪ music</button>
+<button id="musicBtn" aria-label="Toggle music">🔊</button>
 
 <!-- QUOTE CARD (hover only) -->
 <div id="quoteCard">
@@ -1588,10 +1583,10 @@ document.getElementById('musicBtn').addEventListener('click', () => {
   musicMuted = !musicMuted;
   if (musicMuted) {
     ytPlayer.setVolume(0);
-    document.getElementById('musicBtn').textContent = '♪ unmute';
+    document.getElementById('musicBtn').textContent = '🔇';
   } else {
     ytPlayer.setVolume(28);
-    document.getElementById('musicBtn').textContent = '♪ music';
+    document.getElementById('musicBtn').textContent = '🔊';
   }
 });
 
