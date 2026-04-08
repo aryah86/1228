@@ -512,6 +512,31 @@
     #figureCanvas { height: 55vh; }
     .figure-closing-line { font-size: clamp(1.2rem, 5vw, 1.8rem); }
   }
+  /* === MUSIC BUTTON === */
+  #musicBtn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 200;
+    background: rgba(28, 25, 22, 0.85);
+    border: 1px solid rgba(212, 196, 176, 0.2);
+    color: var(--dust);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.6s ease, color 0.3s ease, border-color 0.3s ease;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+  }
+  #musicBtn.on { opacity: 1; pointer-events: auto; }
+  #musicBtn:hover { color: var(--bone); border-color: rgba(212, 196, 176, 0.4); }
+  #ytPlayer { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
 </style>
 </head>
 <body>
@@ -557,6 +582,8 @@
 </div>
 
 <div class="scroll-hint" id="scrollHint">Scroll</div>
+<div id="ytPlayer"></div>
+<button id="musicBtn" aria-label="Toggle music">♪ music</button>
 
 <!-- QUOTE CARD (hover only) -->
 <div id="quoteCard">
@@ -1491,8 +1518,87 @@ document.getElementById('startBtn').onclick = () => {
   setTimeout(() => {
     intro.classList.add('gone');
     startFlyTransition();
+    setTimeout(startMusic, 1800);
   }, 1200);
 };
+
+// ─── MUSIC: Max Richter — On the Nature of Daylight ───
+const MUSIC_START = 90;   // 1:30 — middle section
+const MUSIC_END   = 300;  // 5:00 — before the fade-out
+let ytPlayer = null;
+let musicMuted = false;
+let loopInterval = null;
+
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('ytPlayer', {
+    videoId: 'InyT9Gyoz_o',
+    playerVars: {
+      autoplay: 0,
+      controls: 0,
+      disablekb: 1,
+      fs: 0,
+      modestbranding: 1,
+      playsinline: 1,
+      rel: 0,
+      start: MUSIC_START,
+    },
+    events: {
+      onReady: onPlayerReady,
+      onStateChange: onPlayerStateChange,
+    }
+  });
+}
+
+function onPlayerReady(e) {
+  e.target.setVolume(28);
+}
+
+function onPlayerStateChange(e) {
+  if (e.data === YT.PlayerState.PLAYING) {
+    clearInterval(loopInterval);
+    loopInterval = setInterval(() => {
+      if (!ytPlayer) return;
+      const t = ytPlayer.getCurrentTime();
+      if (t >= MUSIC_END) {
+        ytPlayer.seekTo(MUSIC_START, true);
+      }
+    }, 500);
+  } else {
+    clearInterval(loopInterval);
+  }
+}
+
+function startMusic() {
+  if (!ytPlayer || typeof ytPlayer.playVideo !== 'function') return;
+  ytPlayer.seekTo(MUSIC_START, true);
+  ytPlayer.setVolume(0);
+  ytPlayer.playVideo();
+  // Fade volume in over 4 seconds
+  let vol = 0;
+  const fadeIn = setInterval(() => {
+    vol = Math.min(vol + 1, 28);
+    ytPlayer.setVolume(vol);
+    if (vol >= 28) clearInterval(fadeIn);
+  }, 140);
+  document.getElementById('musicBtn').classList.add('on');
+}
+
+document.getElementById('musicBtn').addEventListener('click', () => {
+  if (!ytPlayer || typeof ytPlayer.playVideo !== 'function') return;
+  musicMuted = !musicMuted;
+  if (musicMuted) {
+    ytPlayer.setVolume(0);
+    document.getElementById('musicBtn').textContent = '♪ unmute';
+  } else {
+    ytPlayer.setVolume(28);
+    document.getElementById('musicBtn').textContent = '♪ music';
+  }
+});
+
+// Load YouTube IFrame API
+const ytScript = document.createElement('script');
+ytScript.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(ytScript);
 </script>
 </body>
 </html>
