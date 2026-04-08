@@ -1531,20 +1531,20 @@ document.getElementById('startBtn').onclick = () => {
 };
 
 // ─── MUSIC: Max Richter — On the Nature of Daylight ───
-const MUSIC_START = 90;   // 1:30 — middle section
-const MUSIC_END   = 300;  // 5:00 — before the fade-out
+const MUSIC_START = 90;  // 1:30
+const MUSIC_END   = 300; // 5:00
 let ytPlayer = null;
-let musicPlaying = false;
 let loopInterval = null;
 
-const SVG_ON  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg><span id="musicLabel">mute</span>`;
-const SVG_OFF = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg><span id="musicLabel">play music</span>`;
+const SVG_SOUND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
+const SVG_MUTED = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
 
 function onYouTubeIframeAPIReady() {
   ytPlayer = new YT.Player('ytPlayer', {
     videoId: 'InyT9Gyoz_o',
     playerVars: {
-      autoplay: 0,
+      autoplay: 1,  // start playing immediately (muted — works in all browsers)
+      mute: 1,
       controls: 0,
       disablekb: 1,
       fs: 0,
@@ -1553,49 +1553,39 @@ function onYouTubeIframeAPIReady() {
       rel: 0,
       start: MUSIC_START,
     },
-    events: { onStateChange: onPlayerStateChange }
+    events: {
+      onReady(e) {
+        e.target.seekTo(MUSIC_START, true);
+        // show button: "click to hear music"
+        const btn = document.getElementById('musicBtn');
+        btn.innerHTML = SVG_MUTED + '<span>play music</span>';
+        btn.classList.add('on');
+      },
+      onStateChange(e) {
+        if (e.data === YT.PlayerState.PLAYING) {
+          clearInterval(loopInterval);
+          loopInterval = setInterval(() => {
+            if (ytPlayer.getCurrentTime() >= MUSIC_END) ytPlayer.seekTo(MUSIC_START, true);
+          }, 500);
+        } else if (e.data === YT.PlayerState.ENDED || e.data === YT.PlayerState.PAUSED) {
+          // keep looping
+          ytPlayer.playVideo();
+        }
+      }
+    }
   });
-  // Show the button once the API is ready
-  document.getElementById('musicBtn').classList.add('on');
-  document.getElementById('musicBtn').innerHTML = SVG_OFF;
-}
-
-function onPlayerStateChange(e) {
-  if (e.data === YT.PlayerState.PLAYING) {
-    clearInterval(loopInterval);
-    loopInterval = setInterval(() => {
-      if (!ytPlayer) return;
-      if (ytPlayer.getCurrentTime() >= MUSIC_END) ytPlayer.seekTo(MUSIC_START, true);
-    }, 500);
-  } else {
-    clearInterval(loopInterval);
-  }
 }
 
 document.getElementById('musicBtn').addEventListener('click', () => {
-  if (!ytPlayer || typeof ytPlayer.playVideo !== 'function') return;
-  if (!musicPlaying) {
-    // First click — start playing
-    ytPlayer.seekTo(MUSIC_START, true);
-    ytPlayer.setVolume(0);
-    ytPlayer.playVideo();
-    let vol = 0;
-    const fadeIn = setInterval(() => {
-      vol = Math.min(vol + 1, 30);
-      ytPlayer.setVolume(vol);
-      if (vol >= 30) clearInterval(fadeIn);
-    }, 130);
-    musicPlaying = true;
-    document.getElementById('musicBtn').innerHTML = SVG_ON;
+  if (!ytPlayer || typeof ytPlayer.unMute !== 'function') return;
+  const btn = document.getElementById('musicBtn');
+  if (ytPlayer.isMuted()) {
+    ytPlayer.unMute();
+    ytPlayer.setVolume(30);
+    btn.innerHTML = SVG_SOUND + '<span>mute</span>';
   } else {
-    // Toggle mute
-    if (ytPlayer.isMuted()) {
-      ytPlayer.unMute();
-      document.getElementById('musicBtn').innerHTML = SVG_ON;
-    } else {
-      ytPlayer.mute();
-      document.getElementById('musicBtn').innerHTML = SVG_OFF;
-    }
+    ytPlayer.mute();
+    btn.innerHTML = SVG_MUTED + '<span>play music</span>';
   }
 });
 
