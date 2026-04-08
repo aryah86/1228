@@ -584,14 +584,15 @@
 </div>
 
 <div class="scroll-hint" id="scrollHint">Scroll</div>
-<div id="ytPlayer"></div>
+<iframe id="ytFrame"
+  src="https://www.youtube.com/embed/InyT9Gyoz_o?enablejsapi=1&autoplay=1&mute=1&start=90&loop=1&playlist=InyT9Gyoz_o&controls=0&rel=0&playsinline=1"
+  allow="autoplay; encrypted-media"
+  frameborder="0"
+  style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;"
+></iframe>
 <button id="musicBtn" aria-label="Toggle music">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-  </svg>
-  <span id="musicLabel">play music</span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+  <span>play music</span>
 </button>
 
 <!-- QUOTE CARD (hover only) -->
@@ -1531,68 +1532,37 @@ document.getElementById('startBtn').onclick = () => {
 };
 
 // ─── MUSIC: Max Richter — On the Nature of Daylight ───
-const MUSIC_START = 90;  // 1:30
-const MUSIC_END   = 300; // 5:00
-let ytPlayer = null;
-let loopInterval = null;
+const SVG_SOUND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg><span>mute</span>`;
+const SVG_MUTED = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg><span>play music</span>`;
 
-const SVG_SOUND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
-const SVG_MUTED = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+let ytMuted = true;
+const ytFrame = document.getElementById('ytFrame');
 
-function onYouTubeIframeAPIReady() {
-  ytPlayer = new YT.Player('ytPlayer', {
-    videoId: 'InyT9Gyoz_o',
-    playerVars: {
-      autoplay: 1,  // start playing immediately (muted — works in all browsers)
-      mute: 1,
-      controls: 0,
-      disablekb: 1,
-      fs: 0,
-      modestbranding: 1,
-      playsinline: 1,
-      rel: 0,
-      start: MUSIC_START,
-    },
-    events: {
-      onReady(e) {
-        e.target.seekTo(MUSIC_START, true);
-        // show button: "click to hear music"
-        const btn = document.getElementById('musicBtn');
-        btn.innerHTML = SVG_MUTED + '<span>play music</span>';
-        btn.classList.add('on');
-      },
-      onStateChange(e) {
-        if (e.data === YT.PlayerState.PLAYING) {
-          clearInterval(loopInterval);
-          loopInterval = setInterval(() => {
-            if (ytPlayer.getCurrentTime() >= MUSIC_END) ytPlayer.seekTo(MUSIC_START, true);
-          }, 500);
-        } else if (e.data === YT.PlayerState.ENDED || e.data === YT.PlayerState.PAUSED) {
-          // keep looping
-          ytPlayer.playVideo();
-        }
-      }
-    }
-  });
+function ytCmd(func, args) {
+  ytFrame.contentWindow.postMessage(
+    JSON.stringify({ event: 'command', func, args: args || [] }), '*'
+  );
 }
 
-document.getElementById('musicBtn').addEventListener('click', () => {
-  if (!ytPlayer || typeof ytPlayer.unMute !== 'function') return;
+// Show button once iframe has loaded
+ytFrame.addEventListener('load', () => {
   const btn = document.getElementById('musicBtn');
-  if (ytPlayer.isMuted()) {
-    ytPlayer.unMute();
-    ytPlayer.setVolume(30);
-    btn.innerHTML = SVG_SOUND + '<span>mute</span>';
-  } else {
-    ytPlayer.mute();
-    btn.innerHTML = SVG_MUTED + '<span>play music</span>';
-  }
+  btn.classList.add('on');
 });
 
-// Load YouTube IFrame API
-const ytScript = document.createElement('script');
-ytScript.src = 'https://www.youtube.com/iframe_api';
-document.head.appendChild(ytScript);
+document.getElementById('musicBtn').addEventListener('click', () => {
+  const btn = document.getElementById('musicBtn');
+  if (ytMuted) {
+    ytCmd('unMute');
+    ytCmd('setVolume', [30]);
+    btn.innerHTML = SVG_SOUND;
+    ytMuted = false;
+  } else {
+    ytCmd('mute');
+    btn.innerHTML = SVG_MUTED;
+    ytMuted = true;
+  }
+});
 </script>
 </body>
 </html>
